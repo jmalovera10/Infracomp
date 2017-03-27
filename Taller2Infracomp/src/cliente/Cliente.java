@@ -86,7 +86,7 @@ public class Cliente {
 					else{
 						resp = Protocol.ALGORITMOS;
 						for (String alg : algs) {
-							resp+=":"+alg;
+							if(!alg.equals(""))resp+=":"+alg;
 						}
 						algs = null;
 					}
@@ -95,7 +95,7 @@ public class Cliente {
 				else printer.write(Protocol.HOLA);
 				break;
 			case 1:
-				
+				if(inCliente.hasNext())resp = inCliente.nextLine();
 				break;
 			default: 
 				state = 0;
@@ -105,6 +105,6 @@ public class Cliente {
 	}
 
 	public static void main(String[] args) {
-		//Cliente c = new Cliente();
+		Cliente c = new Cliente();
 	}
 }
