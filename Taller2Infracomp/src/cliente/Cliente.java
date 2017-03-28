@@ -100,7 +100,7 @@ public class Cliente {
 				else if(command.contains(Protocol.ERROR)) throw new Exception(command);
 				break;
 			case 1:
-				if(inCliente.hasNext())resp = inCliente.nextLine();
+				resp = inCliente.next();
 				break;
 			default: 
 				state = 0;
