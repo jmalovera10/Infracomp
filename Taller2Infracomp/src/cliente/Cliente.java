@@ -5,6 +5,34 @@ import java.io.InputStreamReader;
 import java.io.PrintWriter;
 import java.net.Socket;
 import java.util.Scanner;
+import java.security.KeyPair;
+import java.security.KeyPairGenerator;
+import java.security.PrivateKey;
+import java.security.PublicKey;
+import java.security.SecureRandom;
+import java.security.k;
+
+import org.bouncycastle.crypto.util.PrivateKeyFactory;
+import org.bouncycastle.x509.*;
+
+/*https://docs.oracle.com/javase/tutorial/security/apisign/step2.html
+
+
+/*
+public java.security.cert.X509Certificate generateX509Certificate(java.security.PrivateKey key,
+        java.lang.String provider)
+
+/*http://www.bouncycastle.org/wiki/display/JA1/X.509+Public+Key+Certificate+and+Certification+Request+Generation
+ * static {
+  Security.addProvider(new BouncyCastleProvider());
+}
+
+public void someMethod() {
+  KeyFactory fact = KeyFactory.getInstance("RSA", "BC");
+  Key key = fact.generatePublic(PUB_KEY_SPEC);
+  // do stuff
+}
+ */
 
 import protocolo.Protocol;
 
@@ -94,13 +122,28 @@ public class Cliente {
 							if(!alg.equals(""))resp+=":"+alg;
 						}
 						System.out.println(resp);
-						algs = null;
+						state=1;
 					}
 				}
 				else if(command.contains(Protocol.ERROR)) throw new Exception(command);
 				break;
 			case 1:
 				resp = inCliente.next();
+				if (resp.equals(Protocol.OK)){
+					KeyPairGenerator keyGen = KeyPairGenerator.getInstance("RSA", "SUN");
+					SecureRandom random = SecureRandom.getInstance("SHA1PRNG", "SUN");
+					keyGen.initialize(1024, random);
+					KeyPair pair = keyGen.generateKeyPair();
+					PrivateKey priv = pair.getPrivate();
+					PublicKey pub = pair.getPublic();
+					X509V1CertificateGenerator cert = new X509V1CertificateGenerator();
+					cert.generate(priv);
+					printer.println(cert);
+					state=2;
+				}else{
+					System.out.println("Error");
+					state=0;
+				}
 				break;
 			default: 
 				state = 0;
