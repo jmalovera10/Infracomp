@@ -46,10 +46,13 @@ public class Cliente {
 			for (int i = 0; i < Protocol.ALGORITMOS_ARR.length; i++) {
 				System.out.println("["+(i+1)+"] "+Protocol.ALGORITMOS_ARR[i]);
 			}
-
+			
 			System.out.print(">");
-			String[] algs = new String[0];
-			if(inCliente.hasNext())algs = inCliente.nextLine().split(",");
+			String[] algs = inCliente.next().split(",");
+			
+			for (String string : algs) {
+				System.out.println(">"+string);
+			}
 
 			for (int i = 0; i < algs.length; i++) {
 				if(!(algs[i].equals("")||algs[i]==null))algs[i] = Protocol.ALGORITMOS_ARR[Integer.parseInt(algs[i])];
@@ -60,6 +63,7 @@ public class Cliente {
 			printer = new PrintWriter(socket.getOutputStream(),true);
 			reader = new BufferedReader(new InputStreamReader(socket.getInputStream()));
 
+			
 			empezarProtocolo(algs);
 			//printer.println(Protocol.HOLA);
 			//System.out.println(reader.readLine().equals(Protocol.OK)?"\n----------------------------\n"
@@ -76,6 +80,7 @@ public class Cliente {
 		int state=0;
 		String command="";
 		String resp = "";
+		printer.println(Protocol.HOLA);
 
 		while(socket.isConnected()){
 			if(reader.ready())command = reader.readLine();
@@ -88,11 +93,11 @@ public class Cliente {
 						for (String alg : algs) {
 							if(!alg.equals(""))resp+=":"+alg;
 						}
+						System.out.println(resp);
 						algs = null;
 					}
 				}
-				else if(command.equals(Protocol.ERROR))throw new Exception("Ha ocurrido un error con los algoritmos especificados");
-				else printer.write(Protocol.HOLA);
+				else if(command.contains(Protocol.ERROR)) throw new Exception(command);
 				break;
 			case 1:
 				if(inCliente.hasNext())resp = inCliente.nextLine();
