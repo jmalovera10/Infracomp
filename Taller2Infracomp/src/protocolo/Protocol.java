@@ -30,6 +30,9 @@ public class Protocol {
 	//Cadenas de caracteres para algoritmos
 	//---------------------------------------
 	
-	public static final String[] ALGORITMOS_ARR = {"DES","AES","Blowfish","RC4","RSA","HMACMD5","HMACSHA1","HMACSHA256"};
+	public static final String[] ALG_SIMETRICOS = {"DES","AES","Blowfish","RC4"};
 	
+	public static final String[] ALG_ASIMETRICOS = {"RSA"};
+	
+	public static final String[] ALG_HASH = {"HMACMD5","HMACSHA1","HMACSHA256"};
 }
