@@ -163,6 +163,7 @@ public class Cliente {
 					printer.println(cert);
 					state=2;
 					response=false;
+				}
 				else{
 					
 				}
