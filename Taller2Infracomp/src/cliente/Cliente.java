@@ -170,6 +170,9 @@ public class Cliente {
 				case 1:
 					if (response){
 						System.out.println("El certificado digital del servidor es: "+command);
+						System.out.println("Autenticando...");
+						reto = Math.abs(rand.nextLong());
+						printer.println(reto);
 						response = false;
 					}
 					else{
@@ -191,22 +194,18 @@ public class Cliente {
 
 					//Etapa3: Autenticación
 				case 2:
-					if(response){
+					if(!response){
 						if(reto == Long.parseLong(command))printer.println(Protocol.OK);
 						else throw new Exception("El reto recibido no coincide con el enviado.");
 						state = 3;
-						response = false;
-					}else{
-						System.out.println("Autenticando...");
-						reto = Math.abs(rand.nextLong());
-						printer.println(reto);
-						response = true;
 					}
 					break;
 				case 3:
 					if(response){
 						ls = command;
 						state = 4;
+						System.out.println("Consultando...");
+						printer.println("1111:1111");
 						response = false;
 					}else{
 						printer.println(command);
@@ -216,14 +215,10 @@ public class Cliente {
 
 					//Etapa4: Consulta
 				case 4:
-					if(response){
+					if(!response){
 						System.out.println("La respuesta a la consulta fue: "+command);
 						printer.println(Protocol.OK);
 						termina = true;
-					}else{
-						System.out.println("Consultando...");
-						printer.println("1111:1111");
-						response = true;
 					}
 					break;
 				default: 
