@@ -55,7 +55,7 @@ public class Cliente {
 	 * Lector de los datos enviados desde el servidor
 	 */
 	private BufferedReader reader;
-	
+
 	/**
 	 * Relación con la clase se encarga de procesar la seguridad del sistema
 	 */
@@ -66,8 +66,8 @@ public class Cliente {
 	 * 
 	 */
 	private KeyPair pair;
-	
-	
+
+
 	/**
 	 * Constructor por defecto
 	 */
@@ -75,35 +75,36 @@ public class Cliente {
 
 		try{
 			inCliente = new Scanner(System.in);
+			seguridad = new Seguridad();
 
 			System.out.println("----------------------------------\nTaller Canales Seguros\n----------------------------------\n");
 			System.out.print("Ingrese el puerto al cual se quiere conectar\n>");
 			int puerto = inCliente.nextInt();
 
 			System.out.println("\nSeleccione, separando con comas, los números de los algorimtos de cifrado que desea utilizar\n");
-			
+
 			System.out.println("\nAlgoritmos Simétricos");
 			for (int i = 0; i < Protocol.ALG_SIMETRICOS.length; i++) {
 				System.out.println("["+(i+1)+"] "+Protocol.ALG_SIMETRICOS[i]);
 			}
-			
+
 			System.out.println("\nAlgoritmos Asimétricos");
 			for (int i = 0; i < Protocol.ALG_ASIMETRICOS.length; i++) {
 				System.out.println("["+(i+1)+"] "+Protocol.ALG_ASIMETRICOS[i]);
 			}
-			
+
 			System.out.println("\nAlgoritmos Hash");
 			for (int i = 0; i < Protocol.ALG_HMAC.length; i++) {
 				System.out.println("["+(i+1)+"] "+Protocol.ALG_HMAC[i]);
 			}
-			
+
 			System.out.print(">");
 			String[] indexes = inCliente.next().split(",");
 			String[] algs = new String[3];
-			
-			algs[0] = Protocol.ALG_SIMETRICOS[Integer.parseInt(indexes[0])];
-			algs[1] = Protocol.ALG_ASIMETRICOS[Integer.parseInt(indexes[1])];
-			algs[2] = Protocol.ALG_HMAC[Integer.parseInt(indexes[2])];
+
+			algs[0] = Protocol.ALG_SIMETRICOS[Integer.parseInt(indexes[0])-1];
+			algs[1] = Protocol.ALG_ASIMETRICOS[Integer.parseInt(indexes[1])-1];
+			algs[2] = Protocol.ALG_HMAC[Integer.parseInt(indexes[2])-1];
 
 			socket = new Socket("localhost", puerto);
 			socket.setKeepAlive(true);
@@ -122,7 +123,7 @@ public class Cliente {
 				socket.close();
 				printer.close();
 				inCliente.close();
-				
+
 			} catch (IOException e) {
 				e.printStackTrace();
 			}
@@ -132,7 +133,8 @@ public class Cliente {
 	private void empezarProtocolo(String[] algs)throws Exception {
 
 		boolean termina = false;
-		
+		boolean waiting = true;
+
 		int state=0;
 		String command="";
 		String resp = "";
@@ -143,88 +145,99 @@ public class Cliente {
 		printer.println(Protocol.HOLA);
 
 		while(!termina){	
-			System.out.println("waiting...");
-			if(reader.ready())command = reader.readLine();
-			if(!(command == null && command.equals("")))System.out.println("\nEl servidor dice: "+command);
-			switch(state){
-		
-			//Etapa1: Inicio de sesión
-			case 0: 
-				if(command.equals(Protocol.OK)){
-					if(response){
+			if(reader.ready()){
+				waiting = true;
+				command = reader.readLine();
+				if(command.toLowerCase().contains(Protocol.ERROR.toLowerCase())) throw new Exception(command);
+				if(!(command == null && command.equals("")))System.out.println("\nEl servidor dice: "+command);
+				switch(state){
+
+				//Etapa1: Inicio de sesión
+				case 0: 
+					if(command.equals(Protocol.OK)){
+						if(response){
+							response = false;
+							state = 1;
+						}
+						else{
+							System.out.println("Iniciando sesión...\n");
+							resp = Protocol.ALGORITMOS;
+							for (String alg : algs) {
+								if(!alg.equals(""))resp+=":"+alg;
+							}
+							printer.println(resp);
+							response = true;
+						}
+					}
+					break;
+
+					//Etapa2: Intercambio de CD
+				case 1:
+					if (response){
+						System.out.println("El certificado digital del servidor es: "+command);
 						response = false;
-						state = 1;
 					}
 					else{
-						resp = Protocol.ALGORITMOS;
-						for (String alg : algs) {
-							if(!alg.equals(""))resp+=":"+alg;
-						}
-						printer.println(response);
+						System.out.println("Intercambiando CD...");
+						KeyPairGenerator keyGen = KeyPairGenerator.getInstance(Protocol.ALG_ASIMETRICOS[0]);
+						SecureRandom random = SecureRandom.getInstance("SHA1PRNG");
+						keyGen.initialize(1024, random);
+						pair = keyGen.generateKeyPair();
+
+						X509Certificate cert = seguridad.generarCertificado(pair);
+
+						printer.println(cert);
+						state=2;
 						response = true;
 					}
+					break;
+
+					//Etapa3: Autenticación
+				case 2:
+					if(response){
+						if(reto == Long.parseLong(command))printer.println(Protocol.OK);
+						else throw new Exception("El reto recibido no coincide con el enviado.");
+						state = 3;
+						response = false;
+					}else{
+						System.out.println("Autenticando...");
+						reto = Math.abs(rand.nextLong());
+						printer.println(reto);
+						response = true;
+					}
+					break;
+				case 3:
+					if(response){
+						ls = command;
+						state = 4;
+						response = false;
+					}else{
+						printer.println(command);
+						response = true;
+					}
+					break;
+
+					//Etapa4: Consulta
+				case 4:
+					if(response){
+						System.out.println("La respuesta a la consulta fue: "+command);
+						printer.println(Protocol.OK);
+						termina = true;
+					}else{
+						System.out.println("Consultando...");
+						printer.println("1111:1111");
+						response = true;
+					}
+					break;
+				default: 
+					state = 0;
+					break;
 				}
-				else if(command.contains(Protocol.ERROR)) throw new Exception(command);
-				break;
-				
-			//Etapa2: Intercambio de CD
-			case 1:
-				if (response){
-					System.out.println("El certificado digital del servidor es: "+command);
-					response=false;
+			}else{
+				if(waiting){
+					System.out.println("waiting...");
+					waiting = false;
 				}
-				else{
-					KeyPairGenerator keyGen = KeyPairGenerator.getInstance(Protocol.ALG_ASIMETRICOS[0]);
-					SecureRandom random = SecureRandom.getInstance("SHA1PRNG");
-					keyGen.initialize(1024, random);
-					pair = keyGen.generateKeyPair();
-			
-					X509Certificate cert = seguridad.generarCertificado(pair);
-					
-					printer.println(cert);
-					state=2;
-					response = true;
-				}
-				break;
-				
-			//Etapa3: Autenticación
-			case 2:
-				if(response){
-					if(reto == Long.parseLong(command))printer.println(Protocol.OK);
-					else throw new Exception("El reto recibido no coincide con el enviado.");
-					state = 3;
-					response = false;
-				}else{
-					reto = Math.abs(rand.nextLong());
-					printer.println(reto);
-					response = true;
-				}
-				break;
-			case 3:
-				if(response){
-					ls = command;
-					state = 4;
-					response = false;
-				}else{
-					printer.println(command);
-					response = true;
-				}
-				break;
-			
-			//Etapa4: Consulta
-			case 4:
-				if(response){
-					System.out.println("La respuesta a la consulta fue: "+command);
-					printer.println(Protocol.OK);
-					termina = true;
-				}else{
-					printer.println("1111:1111");
-					response = true;
-				}
-				break;
-			default: 
-				state = 0;
-				break;
 			}
 		}
 	}
