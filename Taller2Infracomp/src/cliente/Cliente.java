@@ -1,5 +1,7 @@
 package cliente;
 
+import seguridad.*;
+
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStreamReader;
@@ -7,6 +9,18 @@ import java.io.PrintWriter;
 import java.net.Socket;
 import java.util.Random;
 import java.util.Scanner;
+<<<<<<< HEAD
+=======
+import java.security.KeyPair;
+import java.security.KeyPairGenerator;
+import java.security.PrivateKey;
+import java.security.PublicKey;
+import java.security.SecureRandom;
+import java.security.cert.X509Certificate;
+
+import org.bouncycastle.crypto.util.PrivateKeyFactory;
+import org.bouncycastle.x509.*;
+>>>>>>> f6f80affc22e9b6fd68fb826e932467f4ef48492
 
 /*https://docs.oracle.com/javase/tutorial/security/apisign/step2.html
 
@@ -57,6 +71,13 @@ public class Cliente {
 	 */
 	private Seguridad seguridad;
 
+	/*
+	 * Key pair for RSA
+	 * 
+	 */
+	private KeyPair pair;
+	
+	
 	/**
 	 * Constructor por defecto
 	 */
@@ -158,11 +179,20 @@ public class Cliente {
 				
 			//Etapa2: Intercambio de CD
 			case 1:
-				if(response){
+				if (response){
+					System.out.println("El certificado digital del servidor es: "+command);
+					response=false;
+				}
+				else{
+					KeyPairGenerator keyGen = KeyPairGenerator.getInstance(Protocol.ALG_ASIMETRICOS[0]);
+					SecureRandom random = SecureRandom.getInstance("SHA1PRNG");
+					keyGen.initialize(1024, random);
+					pair = keyGen.generateKeyPair();
+			
+					X509Certificate cert = seguridad.generarCertificado(pair);
 					
-					state = 2;
-					response = false;
-				}else{
+					printer.println(cert);
+					state=2;
 					response = true;
 				}
 				break;
