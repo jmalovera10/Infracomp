@@ -10,7 +10,7 @@ import java.security.KeyPairGenerator;
 import java.security.PrivateKey;
 import java.security.PublicKey;
 import java.security.SecureRandom;
-import java.security.k;
+
 
 import org.bouncycastle.crypto.util.PrivateKeyFactory;
 import org.bouncycastle.x509.*;
@@ -111,8 +111,13 @@ public class Cliente {
 		printer.println(Protocol.HOLA);
 
 		while(socket.isConnected()){
-			if(reader.ready())command = reader.readLine();
+			
+			System.out.println("waiting");
+			if(reader.ready()) command = reader.readLine();
+			System.out.println(command);
+			
 			switch(state){
+		
 			case 0: 
 				if(command.equals(Protocol.OK)){
 					if(algs==null) state = 1;
@@ -128,10 +133,9 @@ public class Cliente {
 				else if(command.contains(Protocol.ERROR)) throw new Exception(command);
 				break;
 			case 1:
-				resp = inCliente.next();
-				if (resp.equals(Protocol.OK)){
-					KeyPairGenerator keyGen = KeyPairGenerator.getInstance("RSA", "SUN");
-					SecureRandom random = SecureRandom.getInstance("SHA1PRNG", "SUN");
+				if (command.equals(Protocol.OK)){
+					KeyPairGenerator keyGen = KeyPairGenerator.getInstance("RSA");
+					SecureRandom random = SecureRandom.getInstance("SHA1PRNG");
 					keyGen.initialize(1024, random);
 					KeyPair pair = keyGen.generateKeyPair();
 					PrivateKey priv = pair.getPrivate();
