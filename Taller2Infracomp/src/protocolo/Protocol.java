@@ -34,5 +34,5 @@ public class Protocol {
 	
 	public static final String[] ALG_ASIMETRICOS = {"RSA"};
 	
-	public static final String[] ALG_HASH = {"HMACMD5","HMACSHA1","HMACSHA256"};
+	public static final String[] ALG_HMAC = {"HMACMD5","HMACSHA1","HMACSHA256"};
 }

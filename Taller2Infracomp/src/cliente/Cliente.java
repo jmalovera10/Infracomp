@@ -93,8 +93,8 @@ public class Cliente {
 			}
 			
 			System.out.println("\nAlgoritmos Hash");
-			for (int i = 0; i < Protocol.ALG_HASH.length; i++) {
-				System.out.println("["+(i+1)+"] "+Protocol.ALG_HASH[i]);
+			for (int i = 0; i < Protocol.ALG_HMAC.length; i++) {
+				System.out.println("["+(i+1)+"] "+Protocol.ALG_HMAC[i]);
 			}
 			
 			System.out.print(">");
@@ -103,7 +103,7 @@ public class Cliente {
 			
 			algs[0] = Protocol.ALG_SIMETRICOS[Integer.parseInt(indexes[0])];
 			algs[1] = Protocol.ALG_ASIMETRICOS[Integer.parseInt(indexes[1])];
-			algs[2] = Protocol.ALG_HASH[Integer.parseInt(indexes[2])];
+			algs[2] = Protocol.ALG_HMAC[Integer.parseInt(indexes[2])];
 
 			socket = new Socket("localhost", puerto);
 			socket.setKeepAlive(true);
