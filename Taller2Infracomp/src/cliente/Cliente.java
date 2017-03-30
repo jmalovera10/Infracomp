@@ -184,7 +184,7 @@ public class Cliente {
 							pair = keyGen.generateKeyPair();
 
 							X509Certificate cert = seguridad.generarCertificado(pair);
-
+							System.out.println(cert);
 							printer.println(cert);
 							state=2;
 							response = true;
