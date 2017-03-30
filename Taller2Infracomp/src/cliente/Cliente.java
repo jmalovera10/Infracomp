@@ -1,5 +1,7 @@
 package cliente;
 
+import seguridad.*;
+
 import java.io.BufferedReader;
 import java.io.InputStreamReader;
 import java.io.PrintWriter;
@@ -10,7 +12,7 @@ import java.security.KeyPairGenerator;
 import java.security.PrivateKey;
 import java.security.PublicKey;
 import java.security.SecureRandom;
-
+import java.security.cert.X509Certificate;
 
 import org.bouncycastle.crypto.util.PrivateKeyFactory;
 import org.bouncycastle.x509.*;
@@ -58,6 +60,13 @@ public class Cliente {
 	 */
 	private BufferedReader reader;
 
+	/*
+	 * Key pair for RSA
+	 * 
+	 */
+	private KeyPair pair;
+	
+	
 	/**
 	 * Constructor por defecto
 	 */
@@ -137,11 +146,10 @@ public class Cliente {
 					KeyPairGenerator keyGen = KeyPairGenerator.getInstance("RSA");
 					SecureRandom random = SecureRandom.getInstance("SHA1PRNG");
 					keyGen.initialize(1024, random);
-					KeyPair pair = keyGen.generateKeyPair();
-					PrivateKey priv = pair.getPrivate();
-					PublicKey pub = pair.getPublic();
-					X509V1CertificateGenerator cert = new X509V1CertificateGenerator();
-					cert.generate(priv);
+					pair = keyGen.generateKeyPair();
+					
+					X509Certificate cert = seguridad.Seguridad.generarCertificado(pair);
+					
 					printer.println(cert);
 					state=2;
 				}else{
