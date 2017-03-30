@@ -155,19 +155,14 @@ public class Cliente {
 				//Etapa1: Inicio de sesión
 				case 0: 
 					if(command.equals(Protocol.OK)){
-						if(response){
-							response = false;
-							state = 1;
+						System.out.println("Iniciando sesión...\n");
+						resp = Protocol.ALGORITMOS;
+						for (String alg : algs) {
+							if(!alg.equals(""))resp+=":"+alg;
 						}
-						else{
-							System.out.println("Iniciando sesión...\n");
-							resp = Protocol.ALGORITMOS;
-							for (String alg : algs) {
-								if(!alg.equals(""))resp+=":"+alg;
-							}
-							printer.println(resp);
-							response = true;
-						}
+						printer.println(resp);
+						state = 1;
+						response = false;
 					}
 					break;
 
@@ -178,17 +173,19 @@ public class Cliente {
 						response = false;
 					}
 					else{
-						System.out.println("Intercambiando CD...");
-						KeyPairGenerator keyGen = KeyPairGenerator.getInstance(Protocol.ALG_ASIMETRICOS[0]);
-						SecureRandom random = SecureRandom.getInstance("SHA1PRNG");
-						keyGen.initialize(1024, random);
-						pair = keyGen.generateKeyPair();
+						if(command.equals(Protocol.OK)){
+							System.out.println("Intercambiando CD...");
+							KeyPairGenerator keyGen = KeyPairGenerator.getInstance(Protocol.ALG_ASIMETRICOS[0]);
+							SecureRandom random = SecureRandom.getInstance("SHA1PRNG");
+							keyGen.initialize(1024, random);
+							pair = keyGen.generateKeyPair();
 
-						X509Certificate cert = seguridad.generarCertificado(pair);
+							X509Certificate cert = seguridad.generarCertificado(pair);
 
-						printer.println(cert);
-						state=2;
-						response = true;
+							printer.println(cert);
+							state=2;
+							response = true;
+						}
 					}
 					break;
 
