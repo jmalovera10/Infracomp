@@ -1,26 +1,16 @@
 package cliente;
 
-import seguridad.*;
-
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.io.PrintWriter;
 import java.net.Socket;
-import java.util.Random;
-import java.util.Scanner;
-<<<<<<< HEAD
-=======
 import java.security.KeyPair;
 import java.security.KeyPairGenerator;
-import java.security.PrivateKey;
-import java.security.PublicKey;
 import java.security.SecureRandom;
 import java.security.cert.X509Certificate;
-
-import org.bouncycastle.crypto.util.PrivateKeyFactory;
-import org.bouncycastle.x509.*;
->>>>>>> f6f80affc22e9b6fd68fb826e932467f4ef48492
+import java.util.Random;
+import java.util.Scanner;
 
 /*https://docs.oracle.com/javase/tutorial/security/apisign/step2.html
 
