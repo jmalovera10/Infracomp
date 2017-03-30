@@ -10,29 +10,18 @@ import java.security.SignatureException;
 import java.security.cert.CertificateEncodingException;
 import java.security.cert.X509Certificate;
 
+import org.bouncycastle.crypto.tls.CertChainType;
 import org.bouncycastle.x509.X509V3CertificateGenerator;
 
 public class Seguridad {
 	
 	public X509Certificate generarCertificado(KeyPair keypair){
-		PrivateKey pub = keypair.getPrivate();
+		PrivateKey priv = keypair.getPrivate();
 		X509V3CertificateGenerator cert = new X509V3CertificateGenerator();
 		X509Certificate a=null;
 		try {
-			a = cert.generate(pub);
-		} catch (CertificateEncodingException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-		} catch (InvalidKeyException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-		} catch (IllegalStateException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-		} catch (NoSuchAlgorithmException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-		} catch (SignatureException e) {
+			a = cert.generate(priv);
+		} catch (Exception e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
 		}
