@@ -71,20 +71,29 @@ public class Cliente {
 			int puerto = inCliente.nextInt();
 
 			System.out.println("\nSeleccione, separando con comas, los números de los algorimtos de cifrado que desea utilizar\n");
-			for (int i = 0; i < Protocol.ALGORITMOS_ARR.length; i++) {
-				System.out.println("["+(i+1)+"] "+Protocol.ALGORITMOS_ARR[i]);
+			
+			System.out.println("\nAlgoritmos Simétricos");
+			for (int i = 0; i < Protocol.ALG_SIMETRICOS.length; i++) {
+				System.out.println("["+(i+1)+"] "+Protocol.ALG_SIMETRICOS[i]);
+			}
+			
+			System.out.println("\nAlgoritmos Asimétricos");
+			for (int i = 0; i < Protocol.ALG_ASIMETRICOS.length; i++) {
+				System.out.println("["+(i+1)+"] "+Protocol.ALG_ASIMETRICOS[i]);
+			}
+			
+			System.out.println("\nAlgoritmos Hash");
+			for (int i = 0; i < Protocol.ALG_HASH.length; i++) {
+				System.out.println("["+(i+1)+"] "+Protocol.ALG_HASH[i]);
 			}
 			
 			System.out.print(">");
-			String[] algs = inCliente.next().split(",");
+			String[] indexes = inCliente.next().split(",");
+			String[] algs = new String[3];
 			
-			for (String string : algs) {
-				System.out.println(">"+string);
-			}
-
-			for (int i = 0; i < algs.length; i++) {
-				if(!(algs[i].equals("")||algs[i]==null))algs[i] = Protocol.ALGORITMOS_ARR[Integer.parseInt(algs[i])];
-			}
+			algs[0] = Protocol.ALG_SIMETRICOS[Integer.parseInt(indexes[0])];
+			algs[1] = Protocol.ALG_ASIMETRICOS[Integer.parseInt(indexes[1])];
+			algs[2] = Protocol.ALG_HASH[Integer.parseInt(indexes[2])];
 
 			socket = new Socket("localhost", puerto);
 			socket.setKeepAlive(true);
@@ -108,31 +117,33 @@ public class Cliente {
 		int state=0;
 		String command="";
 		String resp = "";
+		boolean response = false;
 		printer.println(Protocol.HOLA);
 
-		while(socket.isConnected()){
-			
-			System.out.println("waiting");
-			if(reader.ready()) command = reader.readLine();
-			System.out.println(command);
-			
+		while(socket.isConnected()){	
+			System.out.println("waiting...");
+			if(reader.ready())command = reader.readLine();
+			if(!(command == null && command.equals("")))System.out.println("\nEl servidor dice: "+command);
 			switch(state){
 		
 			case 0: 
 				if(command.equals(Protocol.OK)){
-					if(algs==null) state = 1;
+					if(response){
+						response = false;
+						state = 1;
+					}
 					else{
 						resp = Protocol.ALGORITMOS;
 						for (String alg : algs) {
 							if(!alg.equals(""))resp+=":"+alg;
 						}
-						System.out.println(resp);
-						state=1;
+						response = true;
 					}
 				}
 				else if(command.contains(Protocol.ERROR)) throw new Exception(command);
 				break;
 			case 1:
+<<<<<<< HEAD
 				if (command.equals(Protocol.OK)){
 					KeyPairGenerator keyGen = KeyPairGenerator.getInstance("RSA");
 					SecureRandom random = SecureRandom.getInstance("SHA1PRNG");
@@ -144,9 +155,13 @@ public class Cliente {
 					cert.generate(priv);
 					printer.println(cert);
 					state=2;
+=======
+				if(response){
+					state = 2;
+					response = false;
+>>>>>>> branch_juan
 				}else{
-					System.out.println("Error");
-					state=0;
+					
 				}
 				break;
 			default: 
