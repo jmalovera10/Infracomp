@@ -165,7 +165,7 @@ public class Cliente {
 						response = false;
 					}
 					break;
-
+					
 					//Etapa2: Intercambio de CD
 				case 1:
 					if (response){
