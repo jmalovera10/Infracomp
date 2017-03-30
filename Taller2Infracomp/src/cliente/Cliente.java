@@ -143,23 +143,9 @@ public class Cliente {
 				else if(command.contains(Protocol.ERROR)) throw new Exception(command);
 				break;
 			case 1:
-<<<<<<< HEAD
-				if (command.equals(Protocol.OK)){
-					KeyPairGenerator keyGen = KeyPairGenerator.getInstance("RSA");
-					SecureRandom random = SecureRandom.getInstance("SHA1PRNG");
-					keyGen.initialize(1024, random);
-					KeyPair pair = keyGen.generateKeyPair();
-					PrivateKey priv = pair.getPrivate();
-					PublicKey pub = pair.getPublic();
-					X509V1CertificateGenerator cert = new X509V1CertificateGenerator();
-					cert.generate(priv);
-					printer.println(cert);
-					state=2;
-=======
 				if(response){
 					state = 2;
 					response = false;
->>>>>>> branch_juan
 				}else{
 					
 				}
