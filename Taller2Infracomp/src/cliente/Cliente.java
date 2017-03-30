@@ -1,19 +1,12 @@
 package cliente;
 
 import java.io.BufferedReader;
+import java.io.IOException;
 import java.io.InputStreamReader;
 import java.io.PrintWriter;
 import java.net.Socket;
+import java.util.Random;
 import java.util.Scanner;
-import java.security.KeyPair;
-import java.security.KeyPairGenerator;
-import java.security.PrivateKey;
-import java.security.PublicKey;
-import java.security.SecureRandom;
-
-
-import org.bouncycastle.crypto.util.PrivateKeyFactory;
-import org.bouncycastle.x509.*;
 
 /*https://docs.oracle.com/javase/tutorial/security/apisign/step2.html
 
@@ -35,6 +28,7 @@ public void someMethod() {
  */
 
 import protocolo.Protocol;
+import seguridad.Seguridad;
 
 public class Cliente {
 
@@ -57,6 +51,11 @@ public class Cliente {
 	 * Lector de los datos enviados desde el servidor
 	 */
 	private BufferedReader reader;
+	
+	/**
+	 * Relación con la clase se encarga de procesar la seguridad del sistema
+	 */
+	private Seguridad seguridad;
 
 	/**
 	 * Constructor por defecto
@@ -100,32 +99,45 @@ public class Cliente {
 			printer = new PrintWriter(socket.getOutputStream(),true);
 			reader = new BufferedReader(new InputStreamReader(socket.getInputStream()));
 
-			
 			empezarProtocolo(algs);
-			//printer.println(Protocol.HOLA);
-			//System.out.println(reader.readLine().equals(Protocol.OK)?"\n----------------------------\n"
-			//+ "Conectado con el servidor\n----------------------------\n":"Ha ocurrio un error en la comunicación con el servidor");
 
 		}
 		catch(Exception e){
 			e.printStackTrace();
 		}
+		finally{
+			try {
+				reader.close();
+				socket.close();
+				printer.close();
+				inCliente.close();
+				
+			} catch (IOException e) {
+				e.printStackTrace();
+			}
+		}
 	}
 
 	private void empezarProtocolo(String[] algs)throws Exception {
 
+		boolean termina = false;
+		
 		int state=0;
 		String command="";
 		String resp = "";
+		Random rand = new Random();
+		long reto = 0;
 		boolean response = false;
+		String ls = "";
 		printer.println(Protocol.HOLA);
 
-		while(socket.isConnected()){	
+		while(!termina){	
 			System.out.println("waiting...");
 			if(reader.ready())command = reader.readLine();
 			if(!(command == null && command.equals("")))System.out.println("\nEl servidor dice: "+command);
 			switch(state){
 		
+			//Etapa1: Inicio de sesión
 			case 0: 
 				if(command.equals(Protocol.OK)){
 					if(response){
@@ -137,17 +149,57 @@ public class Cliente {
 						for (String alg : algs) {
 							if(!alg.equals(""))resp+=":"+alg;
 						}
+						printer.println(response);
 						response = true;
 					}
 				}
 				else if(command.contains(Protocol.ERROR)) throw new Exception(command);
 				break;
+				
+			//Etapa2: Intercambio de CD
 			case 1:
 				if(response){
+					
 					state = 2;
 					response = false;
 				}else{
-					
+					response = true;
+				}
+				break;
+				
+			//Etapa3: Autenticación
+			case 2:
+				if(response){
+					if(reto == Long.parseLong(command))printer.println(Protocol.OK);
+					else throw new Exception("El reto recibido no coincide con el enviado.");
+					state = 3;
+					response = false;
+				}else{
+					reto = Math.abs(rand.nextLong());
+					printer.println(reto);
+					response = true;
+				}
+				break;
+			case 3:
+				if(response){
+					ls = command;
+					state = 4;
+					response = false;
+				}else{
+					printer.println(command);
+					response = true;
+				}
+				break;
+			
+			//Etapa4: Consulta
+			case 4:
+				if(response){
+					System.out.println("La respuesta a la consulta fue: "+command);
+					printer.println(Protocol.OK);
+					termina = true;
+				}else{
+					printer.println("1111:1111");
+					response = true;
 				}
 				break;
 			default: 
