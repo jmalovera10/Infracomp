@@ -10,11 +10,13 @@ import java.security.SignatureException;
 import java.security.cert.CertificateEncodingException;
 import java.security.cert.X509Certificate;
 
+import org.bouncycastle.x509.X509V3CertificateGenerator;
+
 public class Seguridad {
 	
 	public X509Certificate generarCertificado(KeyPair keypair){
 		PrivateKey pub = keypair.getPrivate();
-		X509V1CertificateGenerator cert = new X509V1CertificateGenerator();
+		X509V3CertificateGenerator cert = new X509V3CertificateGenerator();
 		X509Certificate a=null;
 		try {
 			a = cert.generate(pub);
