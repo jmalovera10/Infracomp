@@ -9,6 +9,7 @@ import java.security.KeyPair;
 import java.security.KeyPairGenerator;
 import java.security.SecureRandom;
 import java.security.cert.X509Certificate;
+import java.util.Iterator;
 import java.util.Random;
 import java.util.Scanner;
 
@@ -184,7 +185,7 @@ public class Cliente {
 							pair = keyGen.generateKeyPair();
 
 							X509Certificate cert = seguridad.generarCertificado(pair);
-							System.out.println(cert);
+							System.out.print(cert);
 							printer.println(cert);
 							state=2;
 							response = true;
