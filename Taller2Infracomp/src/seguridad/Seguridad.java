@@ -4,42 +4,40 @@ import java.math.BigInteger;
 import java.security.Key;
 import java.security.KeyPair;
 import java.security.MessageDigest;
-import java.security.NoSuchAlgorithmException;
 import java.security.PrivateKey;
 import java.security.PublicKey;
 import java.security.SecureRandom;
 import java.security.cert.X509Certificate;
+import java.util.Calendar;
 import java.util.Date;
-import javax.crypto.BadPaddingException;
+
 import javax.crypto.Cipher;
-import javax.crypto.IllegalBlockSizeException;
-import javax.crypto.NoSuchPaddingException;
 import javax.security.auth.x500.X500Principal;
 
-import org.bouncycastle.crypto.tls.CertChainType;
 import org.bouncycastle.x509.X509V3CertificateGenerator;
 
-public class Seguridad {
-	private
-	final
-	static String ALGORITMO="RSA";	
+import protocolo.Protocol;
+
+public class Seguridad {	
 	
 	public X509Certificate generarCertificado(KeyPair keyPair)throws Exception{
-		/*Date startDate = new Date();
+		Date startDate = new Date();
 		Calendar calendar = Calendar.getInstance();
 		calendar.add(Calendar.DAY_OF_YEAR, 1);
 		Date expiryDate = calendar.getTime();             
-		BigInteger serialNumber = new BigInteger(""+Math.abs(SecureRandom.getInstance("SHA1PRNG").nextLong()));     // serial number for certificate 
+		BigInteger serialNumber = new BigInteger(""+Math.abs(SecureRandom.getInstance("SHA1PRNG").nextLong()));  
 		X509V3CertificateGenerator certGen = new X509V3CertificateGenerator();
 		X500Principal dnName = new X500Principal("CN=Test CA Certificate");
 		certGen.setSerialNumber(serialNumber);
 		certGen.setIssuerDN(dnName);
 		certGen.setNotBefore(startDate);
 		certGen.setNotAfter(expiryDate);
-		certGen.setSubjectDN(dnName);                       // note: same as issuer
+		certGen.setSubjectDN(dnName);                       
 		certGen.setPublicKey(keyPair.getPublic());
-		certGen.setSignatureAlgorithm("SHA1WITHRSA");*/
+		certGen.setSignatureAlgorithm("SHA1WITHRSA");
 
+		return certGen.generate(keyPair.getPrivate());
+		
 		/*Date startDate = new Date();                // time from which certificate is valid
 		Calendar calendar = Calendar.getInstance();
 		calendar.add(Calendar.DAY_OF_YEAR, 1);
@@ -65,15 +63,8 @@ public class Seguridad {
 		X509Certificate cert = certGen.generate(caKey, "BC"); */
 
 		//Aproximación de http://programtalk.com/java-api-usage-examples/org.bouncycastle.cert.X509v3CertificateBuilder/
-		X500NameBuilder nameBuilder = new X500NameBuilder(BCStyle.INSTANCE);
-		nameBuilder.addRDN(BCStyle.CN, "localhost");
-		Date notBefore = new Date();
-		Date notAfter = new Date(System.currentTimeMillis() + 24 * 3 * 60 * 60 * 1000);
-		BigInteger serialNumber = new BigInteger(""+Math.abs(SecureRandom.getInstance("SHA1PRNG").nextLong()));
-		X509v3CertificateBuilder certificateBuilder = new JcaX509v3CertificateBuilder(nameBuilder.build(), serialNumber, notBefore, notAfter, nameBuilder.build(), keyPair.getPublic());
-		ContentSigner contentSigner = new JcaContentSignerBuilder("SHA256WithRSAEncryption").build(keyPair.getPrivate());
-		X509Certificate certificate = new JcaX509CertificateConverter().getCertificate(certificateBuilder.build(contentSigner));
-		return certificate;
+		
+		
 	}
 	
 	public byte[] cifrarSimetrica(String obj, Key key, String algo ) throws Exception{
@@ -100,7 +91,7 @@ public class Seguridad {
 	
 	public byte[] cifrarAsimetrica(String obj, PublicKey key ) throws Exception{
 	
-		Cipher cipher = Cipher.getInstance(ALGORITMO);
+		Cipher cipher = Cipher.getInstance(Protocol.ALG_ASIMETRICOS[0]);
 
 
 		byte[] clearText = obj.getBytes();
@@ -117,7 +108,7 @@ public class Seguridad {
 
 	public String decifrarAsimetrica(byte[] obj, PrivateKey key) throws Exception{
 		
-		Cipher cipher = Cipher.getInstance(ALGORITMO);
+		Cipher cipher = Cipher.getInstance(Protocol.ALG_ASIMETRICOS[0]);
 		cipher.init(Cipher.DECRYPT_MODE, key);
 		byte[] clearText = cipher.doFinal(obj);
 		String s3 = new String(clearText);
