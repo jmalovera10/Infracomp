@@ -63,12 +63,15 @@ public class Cliente {
 	 */
 	private Seguridad seguridad;
 
-	/*
+	/**
 	 * Key pair for RSA
-	 * 
 	 */
 	private KeyPair pair;
 
+	/**
+	 * 
+	 */
+	private String[] algs;
 
 	/**
 	 * Constructor por defecto
@@ -102,7 +105,7 @@ public class Cliente {
 
 			System.out.print(">");
 			String[] indexes = inCliente.next().split(",");
-			String[] algs = new String[3];
+			algs = new String[3];
 
 			algs[0] = Protocol.ALG_SIMETRICOS[Integer.parseInt(indexes[0])-1];
 			algs[1] = Protocol.ALG_ASIMETRICOS[Integer.parseInt(indexes[1])-1];
@@ -113,7 +116,7 @@ public class Cliente {
 			printer = new PrintWriter(socket.getOutputStream(),true);
 			reader = new BufferedReader(new InputStreamReader(socket.getInputStream()));
 
-			empezarProtocolo(algs);
+			empezarProtocolo();
 
 		}
 		catch(Exception e){
@@ -132,7 +135,7 @@ public class Cliente {
 		}
 	}
 
-	private void empezarProtocolo(String[] algs)throws Exception {
+	private void empezarProtocolo()throws Exception {
 
 		boolean termina = false;
 		boolean waiting = true;
@@ -141,6 +144,7 @@ public class Cliente {
 		String command="";
 		String resp = "";
 		Random rand = new Random();
+		String certificate = "";
 		long reto = 0;
 		boolean response = false;
 		String ls = "";
@@ -150,8 +154,10 @@ public class Cliente {
 			if(reader.ready()){
 				waiting = true;
 				command = reader.readLine();
-				if(command.toLowerCase().contains(Protocol.ERROR.toLowerCase())) throw new Exception(command);
-				if(!(command == null && command.equals("")))System.out.println("\nEl servidor dice: "+command);
+				if(command == null || command.equals("")) continue;
+				else if(command.toLowerCase().contains(Protocol.ERROR.toLowerCase())) throw new Exception(command);
+				else if(state == 1 && response) certificate+=command;
+				else System.out.println("\nEl servidor dice: "+command);
 				switch(state){
 
 				//Etapa1: Inicio de sesión
@@ -170,11 +176,14 @@ public class Cliente {
 
 					//Etapa2: Intercambio de CD
 				case 1:
-					if (response){
-						System.out.println("El certificado digital del servidor es: "+command);
+					if (response && command.contains("END CERTIFICATE")){
+						System.out.println("Se ha recibido el certificado digital del servidor:\n"+certificate);
 						System.out.println("Autenticando...");
 						reto = Math.abs(rand.nextLong());
+						printer.println(Protocol.OK);
+						Thread.sleep(500);
 						printer.println(reto);
+						state=2;
 						response = false;
 					}
 					else{
@@ -193,7 +202,6 @@ public class Cliente {
 							String pemCertPre = new String(Base64.encode(derCert));
 							String pemCert = cert_begin + pemCertPre + end_cert;
 							printer.println(pemCert);
-							state=2;
 							response = true;
 						}
 					}
@@ -202,7 +210,7 @@ public class Cliente {
 					//Etapa3: Autenticación
 				case 2:
 					if(!response){
-						if(reto == Long.parseLong(command))printer.println(Protocol.OK);
+						if(reto/10 == Long.parseLong(command))printer.println(Protocol.OK);
 						else throw new Exception("El reto recibido no coincide con el enviado.");
 						state = 3;
 					}
