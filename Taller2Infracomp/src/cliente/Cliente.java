@@ -9,9 +9,10 @@ import java.security.KeyPair;
 import java.security.KeyPairGenerator;
 import java.security.SecureRandom;
 import java.security.cert.X509Certificate;
-import java.util.Iterator;
 import java.util.Random;
 import java.util.Scanner;
+
+import org.bouncycastle.util.encoders.Base64;
 
 /*https://docs.oracle.com/javase/tutorial/security/apisign/step2.html
 
@@ -166,7 +167,7 @@ public class Cliente {
 						response = false;
 					}
 					break;
-					
+
 					//Etapa2: Intercambio de CD
 				case 1:
 					if (response){
@@ -185,8 +186,13 @@ public class Cliente {
 							pair = keyGen.generateKeyPair();
 
 							X509Certificate cert = seguridad.generarCertificado(pair);
-							System.out.print(cert);
-							printer.println(cert);
+							String cert_begin = "-----BEGIN CERTIFICATE-----\n";
+							String end_cert = "\n-----END CERTIFICATE-----";
+
+							byte[] derCert = cert.getEncoded();
+							String pemCertPre = new String(Base64.encode(derCert));
+							String pemCert = cert_begin + pemCertPre + end_cert;
+							printer.println(pemCert);
 							state=2;
 							response = true;
 						}
