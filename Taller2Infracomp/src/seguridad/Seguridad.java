@@ -121,7 +121,7 @@ public class Seguridad {
 		try
 		{
 			byte[] text = buffer.getBytes();
-			MessageDigest hasher = MessageDigest.getInstance("algorithm");
+			MessageDigest hasher = MessageDigest.getInstance(algorithm);
 			hasher.update(text);
 			return
 					hasher.digest();

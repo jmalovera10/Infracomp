@@ -1,6 +1,9 @@
 package cliente;
 
+import java.awt.RenderingHints.Key;
 import java.io.BufferedReader;
+import java.io.FileInputStream;
+import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.io.PrintWriter;
@@ -8,11 +11,15 @@ import java.net.Socket;
 import java.security.KeyPair;
 import java.security.KeyPairGenerator;
 import java.security.SecureRandom;
+import java.security.cert.CertificateFactory;
 import java.security.cert.X509Certificate;
 import java.util.Random;
 import java.util.Scanner;
 
+import javax.crypto.SecretKey;
+
 import org.bouncycastle.util.encoders.Base64;
+import org.bouncycastle.util.encoders.Hex;
 
 /*https://docs.oracle.com/javase/tutorial/security/apisign/step2.html
 
@@ -67,9 +74,19 @@ public class Cliente {
 	 * Key pair for RSA
 	 */
 	private KeyPair pair;
+	
+	/**
+	 * Llave simétrica 
+	 */
+	private SecretKey key;
+	
+	/**
+	 * Certificado digital del servidor
+	 */
+	private X509Certificate certServ;
 
 	/**
-	 * 
+	 * Algoritmos de encripción utilizados
 	 */
 	private String[] algs;
 
@@ -147,6 +164,7 @@ public class Cliente {
 		String certificate = "";
 		long reto = 0;
 		boolean response = false;
+		byte[] cifrado;
 		String ls = "";
 		printer.println(Protocol.HOLA);
 
@@ -156,7 +174,7 @@ public class Cliente {
 				command = reader.readLine();
 				if(command == null || command.equals("")) continue;
 				else if(command.toLowerCase().contains(Protocol.ERROR.toLowerCase())) throw new Exception(command);
-				else if(state == 1 && response) certificate+=command;
+				else if(state == 1 && response) certificate+=command+"\n";
 				else System.out.println("\nEl servidor dice: "+command);
 				switch(state){
 
@@ -164,25 +182,39 @@ public class Cliente {
 				case 0: 
 					if(command.equals(Protocol.OK)){
 						System.out.println("Iniciando sesión...\n");
+						
 						resp = Protocol.ALGORITMOS;
 						for (String alg : algs) {
 							if(!alg.equals(""))resp+=":"+alg;
 						}
 						printer.println(resp);
+						
 						state = 1;
 						response = false;
 					}
 					break;
 
-					//Etapa2: Intercambio de CD
+				//Etapa2: Intercambio de CD
 				case 1:
 					if (response && command.contains("END CERTIFICATE")){
-						System.out.println("Se ha recibido el certificado digital del servidor:\n"+certificate);
+						System.out.println("\nSe ha recibido el certificado digital del servidor:\n"+certificate);
+						PrintWriter pw = new PrintWriter(new FileOutputStream("data/cert.txt"));
+						pw.println(certificate);
+						pw.close();
+						
 						System.out.println("Autenticando...");
+						
+						
 						reto = Math.abs(rand.nextLong());
+						CertificateFactory certFactory = CertificateFactory.getInstance("X.509");
+						certServ = (X509Certificate)certFactory.generateCertificate(new FileInputStream("data/cert.txt"));
+						cifrado = seguridad.cifrarAsimetrica(""+reto , certServ.getPublicKey());
+					    cifrado = Hex.encode(cifrado);
+					    
 						printer.println(Protocol.OK);
 						Thread.sleep(500);
-						printer.println(reto);
+						printer.println(new String(cifrado));
+						
 						state=2;
 						response = false;
 					}
@@ -202,19 +234,26 @@ public class Cliente {
 							String pemCertPre = new String(Base64.encode(derCert));
 							String pemCert = cert_begin + pemCertPre + end_cert;
 							printer.println(pemCert);
+							
 							response = true;
 						}
 					}
 					break;
 
-					//Etapa3: Autenticación
+				//Etapa3: Autenticación
 				case 2:
 					if(!response){
-						if(reto/10 == Long.parseLong(command))printer.println(Protocol.OK);
+						
+						cifrado = Hex.decode(command);
+						long val = Long.parseLong(seguridad.decifrarAsimetrica(cifrado, pair.getPrivate()));
+						if(val==reto)printer.println(Protocol.OK);
 						else throw new Exception("El reto recibido no coincide con el enviado.");
+						
 						state = 3;
 					}
 					break;
+				
+				//Etapa4: Consulta
 				case 3:
 					if(response){
 						ls = command;
@@ -223,16 +262,20 @@ public class Cliente {
 						printer.println("1111:1111");
 						response = false;
 					}else{
-						printer.println(command);
+						cifrado = Hex.decode(command);
+						resp = seguridad.decifrarAsimetrica(cifrado, pair.getPrivate());
+						System.out.println("El número aleatorio es : "+resp);
+						cifrado = seguridad.cifrarAsimetrica( resp, certServ.getPublicKey());
+					    cifrado = Hex.encode(cifrado);
+						printer.println(new String(cifrado));
 						response = true;
 					}
 					break;
-
-					//Etapa4: Consulta
 				case 4:
 					if(!response){
 						System.out.println("La respuesta a la consulta fue: "+command);
 						printer.println(Protocol.OK);
+						
 						termina = true;
 					}
 					break;
@@ -243,6 +286,7 @@ public class Cliente {
 			}else{
 				if(waiting){
 					System.out.println("waiting...");
+					
 					waiting = false;
 				}
 			}
