@@ -221,7 +221,7 @@ public class Cliente {
 					if(!response){
 						
 						cifrado = Hex.decode(command);
-						long val = Long.parseLong(seguridad.decifrarAsimetrica(cifrado));
+						long val = Long.parseLong(seguridad.descifrarAsimetrica(cifrado));
 						if(val==reto)printer.println(Protocol.OK);
 						else throw new Exception("El reto recibido no coincide con el enviado.");
 						
@@ -232,14 +232,24 @@ public class Cliente {
 				//Etapa4: Consulta
 				case 3:
 					if(response){
-						seguridad.inicializarLlaveSimetrica(command);
-						state = 4;
+						cifrado = Hex.decode(command);
+						resp = seguridad.descifrarAsimetrica(cifrado);
+						seguridad.inicializarLlaveSimetrica(resp.getBytes());
+			
 						System.out.println("Consultando...");
-						printer.println("1111:1111");
+						System.out.print(">Ingrese su número de cédula\n>");
+						String cedula = inCliente.next().trim();
+						cifrado = seguridad.cifrarSimetrica(cedula);
+						resp = new String(cifrado);
+						resp += ":"+seguridad.cifrarSimetrica(new String(seguridad.getKeyedDigest(resp)));
+						cifrado = Hex.encode(resp.getBytes());
+						printer.println(new String(cifrado));
+						
+						state = 4;
 						response = false;
 					}else{
 						cifrado = Hex.decode(command);
-						resp = seguridad.decifrarAsimetrica(cifrado);
+						resp = seguridad.descifrarAsimetrica(cifrado);
 						System.out.println("El número aleatorio es : "+resp);
 						cifrado = seguridad.cifrarAsimetrica( resp );
 					    cifrado = Hex.encode(cifrado);
