@@ -71,26 +71,6 @@ public class Cliente {
 	private Seguridad seguridad;
 
 	/**
-	 * Key pair for RSA
-	 */
-	private KeyPair pair;
-	
-	/**
-	 * Llave simétrica 
-	 */
-	private SecretKey key;
-	
-	/**
-	 * Certificado digital del servidor
-	 */
-	private X509Certificate certServ;
-
-	/**
-	 * Algoritmos de encripción utilizados
-	 */
-	private String[] algs;
-
-	/**
 	 * Constructor por defecto
 	 */
 	public Cliente() {
@@ -122,11 +102,13 @@ public class Cliente {
 
 			System.out.print(">");
 			String[] indexes = inCliente.next().split(",");
-			algs = new String[3];
+			String[] algs = new String[3];
 
 			algs[0] = Protocol.ALG_SIMETRICOS[Integer.parseInt(indexes[0])-1];
 			algs[1] = Protocol.ALG_ASIMETRICOS[Integer.parseInt(indexes[1])-1];
 			algs[2] = Protocol.ALG_HMAC[Integer.parseInt(indexes[2])-1];
+			
+			seguridad.inicializarAlgorimos(algs);
 
 			socket = new Socket("localhost", puerto);
 			socket.setKeepAlive(true);
@@ -165,7 +147,6 @@ public class Cliente {
 		long reto = 0;
 		boolean response = false;
 		byte[] cifrado;
-		String ls = "";
 		printer.println(Protocol.HOLA);
 
 		while(!termina){	
@@ -184,9 +165,7 @@ public class Cliente {
 						System.out.println("Iniciando sesión...\n");
 						
 						resp = Protocol.ALGORITMOS;
-						for (String alg : algs) {
-							if(!alg.equals(""))resp+=":"+alg;
-						}
+						resp += seguridad.getAlgoritmos();
 						printer.println(resp);
 						
 						state = 1;
@@ -204,11 +183,11 @@ public class Cliente {
 						
 						System.out.println("Autenticando...");
 						
-						
 						reto = Math.abs(rand.nextLong());
 						CertificateFactory certFactory = CertificateFactory.getInstance("X.509");
-						certServ = (X509Certificate)certFactory.generateCertificate(new FileInputStream("data/cert.txt"));
-						cifrado = seguridad.cifrarAsimetrica(""+reto , certServ.getPublicKey());
+						X509Certificate certServ = (X509Certificate)certFactory.generateCertificate(new FileInputStream("data/cert.txt"));
+						seguridad.setCertificadoServidor(certServ);
+						cifrado = seguridad.cifrarAsimetrica(""+reto);
 					    cifrado = Hex.encode(cifrado);
 					    
 						printer.println(Protocol.OK);
@@ -221,12 +200,9 @@ public class Cliente {
 					else{
 						if(command.equals(Protocol.OK)){
 							System.out.println("Intercambiando CD...");
-							KeyPairGenerator keyGen = KeyPairGenerator.getInstance(Protocol.ALG_ASIMETRICOS[0]);
-							SecureRandom random = SecureRandom.getInstance("SHA1PRNG");
-							keyGen.initialize(1024, random);
-							pair = keyGen.generateKeyPair();
+							seguridad.inicializarLlaveAsimetrica();
 
-							X509Certificate cert = seguridad.generarCertificado(pair);
+							X509Certificate cert = seguridad.generarCertificado();
 							String cert_begin = "-----BEGIN CERTIFICATE-----\n";
 							String end_cert = "\n-----END CERTIFICATE-----";
 
@@ -245,7 +221,7 @@ public class Cliente {
 					if(!response){
 						
 						cifrado = Hex.decode(command);
-						long val = Long.parseLong(seguridad.decifrarAsimetrica(cifrado, pair.getPrivate()));
+						long val = Long.parseLong(seguridad.decifrarAsimetrica(cifrado));
 						if(val==reto)printer.println(Protocol.OK);
 						else throw new Exception("El reto recibido no coincide con el enviado.");
 						
@@ -256,16 +232,16 @@ public class Cliente {
 				//Etapa4: Consulta
 				case 3:
 					if(response){
-						ls = command;
+						seguridad.inicializarLlaveSimetrica(command);
 						state = 4;
 						System.out.println("Consultando...");
 						printer.println("1111:1111");
 						response = false;
 					}else{
 						cifrado = Hex.decode(command);
-						resp = seguridad.decifrarAsimetrica(cifrado, pair.getPrivate());
+						resp = seguridad.decifrarAsimetrica(cifrado);
 						System.out.println("El número aleatorio es : "+resp);
-						cifrado = seguridad.cifrarAsimetrica( resp, certServ.getPublicKey());
+						cifrado = seguridad.cifrarAsimetrica( resp );
 					    cifrado = Hex.encode(cifrado);
 						printer.println(new String(cifrado));
 						response = true;

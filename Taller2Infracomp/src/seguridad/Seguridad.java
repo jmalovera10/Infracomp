@@ -3,6 +3,7 @@ package seguridad;
 import java.math.BigInteger;
 import java.security.Key;
 import java.security.KeyPair;
+import java.security.KeyPairGenerator;
 import java.security.MessageDigest;
 import java.security.PrivateKey;
 import java.security.PublicKey;
@@ -12,6 +13,7 @@ import java.util.Calendar;
 import java.util.Date;
 
 import javax.crypto.Cipher;
+import javax.crypto.SecretKey;
 import javax.security.auth.x500.X500Principal;
 
 import org.bouncycastle.x509.X509V3CertificateGenerator;
@@ -20,7 +22,79 @@ import protocolo.Protocol;
 
 public class Seguridad {	
 	
-	public X509Certificate generarCertificado(KeyPair keyPair)throws Exception{
+	/**
+	 * Algoritmo simétrico
+	 */
+	private String algSym;
+	
+	/**
+	 * Algoritmo asimétrico
+	 */
+	private String algAsym;
+	
+	/**
+	 * Algoritmo HMAC
+	 */
+	private String algHMAC;
+	
+	/**
+	 * Key pair for RSA
+	 */
+	private KeyPair pair;
+	
+	/**
+	 * Llave simétrica 
+	 */
+	private SecretKey key;
+	
+	/**
+	 * Certificado digital del servidor
+	 */
+	private X509Certificate certServ;
+	
+	/**
+	 * Método que inicializa los algoritmos que se van a utilizar para encripción
+	 * @param algs Algoritmos de encripción
+	 */
+	public void inicializarAlgorimos(String[] algs){
+		algSym = algs[0];
+		algAsym = algs[1];
+		algHMAC = algs[2];
+	}
+	
+	/**
+	 * Método que retorna los algoritmos utilizados para el proceso de encripción
+	 * @return Nombres de los algoritmos definidos
+	 */
+	public String getAlgoritmos() {
+		return ":"+algSym+":"+algAsym+":"+algHMAC;
+	}
+	
+	/**
+	 * Método que inicializa la llave asimétrica
+	 * @throws Exception Si ocurre un error en la inicialización
+	 */
+	public void inicializarLlaveAsimetrica()throws Exception{
+		KeyPairGenerator keyGen = KeyPairGenerator.getInstance(algAsym);
+		SecureRandom random = SecureRandom.getInstance("SHA1PRNG");
+		keyGen.initialize(1024, random);
+		pair = keyGen.generateKeyPair();
+	}
+	
+	/**
+	 * Método que inicializa la llave simétrica
+	 * @throws Exception Si ocurre un error en la inicialización
+	 */
+	public void inicializarLlaveSimetrica(String establecida)throws Exception{
+		
+	}
+	
+	/**
+	 * Método que genera el certificado digital bajo el estándar X509
+	 * @return El certificado digital del cliente
+	 * @throws Exception Si hay un fallo con alguno de los parámetros del certificado
+	 */
+	public X509Certificate generarCertificado()throws Exception{
 		Date startDate = new Date();
 		Calendar calendar = Calendar.getInstance();
 		calendar.add(Calendar.DAY_OF_YEAR, 1);
@@ -33,10 +107,10 @@ public class Seguridad {
 		certGen.setNotBefore(startDate);
 		certGen.setNotAfter(expiryDate);
 		certGen.setSubjectDN(dnName);                       
-		certGen.setPublicKey(keyPair.getPublic());
+		certGen.setPublicKey(pair.getPublic());
 		certGen.setSignatureAlgorithm("SHA1WITHRSA");
 
-		return certGen.generate(keyPair.getPrivate());
+		return certGen.generate(pair.getPrivate());
 		
 		/*Date startDate = new Date();                // time from which certificate is valid
 		Calendar calendar = Calendar.getInstance();
@@ -67,8 +141,8 @@ public class Seguridad {
 		
 	}
 	
-	public byte[] cifrarSimetrica(String obj, Key key, String algo ) throws Exception{
-		String PADDING=algo+"/ECB/PKCS5Padding";
+	public byte[] cifrarSimetrica(String obj) throws Exception{
+		String PADDING=algSym+"/ECB/PKCS5Padding";
 		Cipher cipher = Cipher.getInstance(PADDING);
 		byte[] text= obj.getBytes();
 		cipher.init(Cipher.ENCRYPT_MODE, key);
@@ -79,8 +153,8 @@ public class Seguridad {
 		
 	}
 	
-	public String decifrarSimetrica(byte[] obj, Key key, String algo) throws Exception{
-		String PADDING=algo+"/ECB/PKCS5Padding";
+	public String decifrarSimetrica(byte[] obj) throws Exception{
+		String PADDING=algSym+"/ECB/PKCS5Padding";
 		Cipher cipher = Cipher.getInstance(PADDING);
 		cipher.init(Cipher.DECRYPT_MODE, key);
 		byte[] cipheredText = cipher.doFinal(obj);
@@ -89,15 +163,21 @@ public class Seguridad {
 		
 	}
 	
-	public byte[] cifrarAsimetrica(String obj, PublicKey key ) throws Exception{
+	/**
+	 * Método que cifra el mensaje con la llave pública del servidor, con el algoritmo
+	 * especificado por el usuario
+	 * @param obj Mensaje para ser cifrado
+	 * @return Un arreglo de bytes con el mensaje cifrado
+	 * @throws Exception Si ocurre algún error con el cifrado
+	 */
+	public byte[] cifrarAsimetrica(String obj) throws Exception{
 	
-		Cipher cipher = Cipher.getInstance(Protocol.ALG_ASIMETRICOS[0]);
-
+		Cipher cipher = Cipher.getInstance(algAsym);
 
 		byte[] clearText = obj.getBytes();
 		String s1 = new String (clearText);
 		System.out.println("clave original: " + s1);
-		cipher.init(Cipher.ENCRYPT_MODE, key);
+		cipher.init(Cipher.ENCRYPT_MODE, certServ.getPublicKey());
 
 		byte[] cipheredText = cipher.doFinal(clearText);
 
@@ -106,10 +186,17 @@ public class Seguridad {
 		return	cipheredText;
 	}
 
-	public String decifrarAsimetrica(byte[] obj, PrivateKey key) throws Exception{
+	/**
+	 * Método que descifra el mensaje con la llave privada del cliente, con el algoritmo
+	 * especificado por el usuario
+	 * @param obj Mensaje para ser descifrado
+	 * @return El mensaje descifrado
+	 * @throws Exception Si ocurre algún error con el descifrado
+	 */
+	public String decifrarAsimetrica(byte[] obj) throws Exception{
 		
-		Cipher cipher = Cipher.getInstance(Protocol.ALG_ASIMETRICOS[0]);
-		cipher.init(Cipher.DECRYPT_MODE, key);
+		Cipher cipher = Cipher.getInstance(algAsym);
+		cipher.init(Cipher.DECRYPT_MODE, pair.getPrivate());
 		byte[] clearText = cipher.doFinal(obj);
 		String s3 = new String(clearText);
 		return s3;
@@ -131,4 +218,13 @@ public class Seguridad {
 					
 		}
 	}
+
+	/**
+	 * Método que actualiza el certificado digital del servidor
+	 * @param certServ Certificado digital del servidor
+	 */
+	public void setCertificadoServidor(X509Certificate certServ) {
+		this.certServ = certServ;
+	}
+
 }
