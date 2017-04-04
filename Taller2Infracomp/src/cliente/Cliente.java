@@ -239,11 +239,10 @@ public class Cliente {
 						System.out.println("Consultando...");
 						System.out.print(">Ingrese su número de cédula\n>");
 						String cedula = inCliente.next().trim();
-						cifrado = seguridad.cifrarSimetrica(cedula);
-						resp = new String(cifrado);
-						resp += ":"+seguridad.cifrarSimetrica(new String(seguridad.getKeyedDigest(resp)));
-						cifrado = Hex.encode(resp.getBytes());
-						printer.println(new String(cifrado));
+						cifrado = seguridad.cifrarSimetrica(cedula.getBytes());
+						resp = new String(Hex.encode(cifrado));
+						resp += ":"+new String(Hex.encode(seguridad.cifrarSimetrica(seguridad.getKeyedDigest(cedula.getBytes()))));
+						printer.println(resp);
 						
 						state = 4;
 						response = false;
@@ -259,9 +258,12 @@ public class Cliente {
 					break;
 				case 4:
 					if(!response){
-						System.out.println("La respuesta a la consulta fue: "+command);
-						printer.println(Protocol.OK);
-						
+						String[] vals = command.split(":");
+						resp = seguridad.descifrarSimetrica(Hex.decode(vals[0]));
+						String hash = seguridad.descifrarSimetrica(Hex.decode(vals[1]));
+						if(new String(seguridad.getKeyedDigest(resp.getBytes())).equals(hash))
+							System.out.println("La respuesta a la consulta es: "+resp);
+						else throw new Exception("Error, no se cumple integridad en la consulta.");
 						termina = true;
 					}
 					break;

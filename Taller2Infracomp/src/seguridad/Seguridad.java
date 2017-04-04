@@ -10,11 +10,15 @@ import java.util.Calendar;
 import java.util.Date;
 
 import javax.crypto.Cipher;
+import javax.crypto.KeyGenerator;
+import javax.crypto.Mac;
 import javax.crypto.SecretKey;
 import javax.crypto.spec.SecretKeySpec;
 import javax.security.auth.x500.X500Principal;
 
 import org.bouncycastle.x509.X509V3CertificateGenerator;
+
+import protocolo.Protocol;
 
 public class Seguridad {	
 
@@ -63,11 +67,8 @@ public class Seguridad {
 	 * @return Nombres de los algoritmos definidos
 	 */
 	public String getAlgoritmos() {
-		String resp = ":"+algSym+":"+algAsym+":"+algHMAC;
-		algHMAC = algHMAC.replace("HMAC", "");
-		if(algHMAC.contains("SHA")) algHMAC = algHMAC.replace("SHA", "SHA-");
 		
-		return resp;
+		return ":"+algSym+":"+algAsym+":"+algHMAC;
 	}
 
 	/**
@@ -111,49 +112,19 @@ public class Seguridad {
 		certGen.setSignatureAlgorithm("SHA1WITHRSA");
 
 		return certGen.generate(pair.getPrivate());
-
-		/*Date startDate = new Date();                // time from which certificate is valid
-		Calendar calendar = Calendar.getInstance();
-		calendar.add(Calendar.DAY_OF_YEAR, 1);
-		Date expiryDate = calendar.getTime();             // time after which certificate is not valid
-		BigInteger serialNumber = new BigInteger(""+Math.abs(SecureRandom.getInstance("SHA1PRNG").nextLong()));     // serial number for certificate 
-		PrivateKey caKey = keyPair.getPrivate();              // private key of the certifying authority (ca) certificate
-		//X509Certificate caCert =     // public key certificate of the certifying authority              // public/private key pair that we are creating certificate for
-		X509V3CertificateGenerator certGen = new X509V3CertificateGenerator();
-		X500Principal  subjectName = new X500Principal("CN=Test V3 Certificate");
-
-		certGen.setSerialNumber(serialNumber);
-		certGen.setIssuerDN(caCert.getSubjectX500Principal());
-		certGen.setNotBefore(startDate);
-		certGen.setNotAfter(expiryDate);
-		certGen.setSubjectDN(subjectName);
-		certGen.setPublicKey(keyPair.getPublic());
-		certGen.setSignatureAlgorithm("SHA1WITHRSA");
-
-
-		certGen.addExtension(X509Extensions.AuthorityKeyIdentifier, false, new AuthorityKeyIdentifierStructure(caCert));
-		certGen.addExtension(X509Extensions.SubjectKeyIdentifier, false,new SubjectKeyIdentifierStructure(keyPair.getPublic()));
-
-		X509Certificate cert = certGen.generate(caKey, "BC"); */
-
-		//Aproximación de http://programtalk.com/java-api-usage-examples/org.bouncycastle.cert.X509v3CertificateBuilder/
-
-
+		
 	}
 
-	public byte[] cifrarSimetrica(String obj) throws Exception{
-		String PADDING=algSym+"/ECB/PKCS5Padding";
+	public byte[] cifrarSimetrica(byte[] obj) throws Exception{
+		String PADDING = algSym+((algSym.equals(Protocol.ALG_SIMETRICOS[0])) || (algSym.equals(Protocol.ALG_SIMETRICOS[1])) ? "/ECB/PKCS5Padding" : "");
 		Cipher cipher = Cipher.getInstance(PADDING);
-		byte[] text= obj.getBytes();
 		cipher.init(Cipher.ENCRYPT_MODE, key);
-		byte[] cipheredText = cipher.doFinal(text);
-		String fin= new String(cipheredText);
-		return cipheredText;
+		return cipher.doFinal(obj);
 
 	}
 
 	public String descifrarSimetrica(byte[] obj) throws Exception{
-		String PADDING=algSym+"/ECB/PKCS5Padding";
+		String PADDING= algSym + ((algSym.equals(Protocol.ALG_SIMETRICOS[0])) || (algSym.equals(Protocol.ALG_SIMETRICOS[1])) ? "/ECB/PKCS5Padding" : "");
 		Cipher cipher = Cipher.getInstance(PADDING);
 		cipher.init(Cipher.DECRYPT_MODE, key);
 		byte[] cipheredText = cipher.doFinal(obj);
@@ -203,11 +174,11 @@ public class Seguridad {
 	}
 
 
-	public byte[] getKeyedDigest(String buffer) throws Exception{
-		byte[] text = buffer.getBytes();
-		MessageDigest hasher = MessageDigest.getInstance(algHMAC);
-		hasher.update(text);
-		return hasher.digest();
+	public byte[] getKeyedDigest(byte[] buffer) throws Exception{
+		Mac mac = Mac.getInstance(algHMAC);
+	    mac.init(key);
+	    byte[] bytes = mac.doFinal(buffer);
+	    return bytes;
 	}
 
 	/**
