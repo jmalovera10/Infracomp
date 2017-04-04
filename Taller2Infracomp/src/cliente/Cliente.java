@@ -263,8 +263,12 @@ public class Cliente {
 						String hash = seguridad.descifrarSimetrica(Hex.decode(vals[1]));
 						if(new String(seguridad.getKeyedDigest(resp.getBytes())).equals(hash))
 							System.out.println("La respuesta a la consulta es: "+resp);
-						else throw new Exception("Error, no se cumple integridad en la consulta.");
+						else {
+							printer.println(Protocol.ERROR);
+							throw new Exception("Error, no se cumple integridad en la consulta.");
+						}
 						termina = true;
+						printer.println(Protocol.OK);
 					}
 					break;
 				default: 
@@ -274,7 +278,6 @@ public class Cliente {
 			}else{
 				if(waiting){
 					System.out.println("waiting...");
-					
 					waiting = false;
 				}
 			}
